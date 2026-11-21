@@ -1,0 +1,56 @@
+name: release
+
+# Push an annotated tag vX.Y.Z (matching the manifest version) to test,
+# build and publish a GitHub release; the tag's message becomes the notes.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    needs: tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # actions/checkout only fetches the commit for a tag push and recreates
+      # the tag without its message; fetch the real (annotated) tag object.
+      - name: Fetch the tag itself
+        run: git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+
+      - name: Check tag and manifest version
+        run: |
+          if [ "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" != "tag" ]; then
+            echo "::error::${GITHUB_REF_NAME} is a lightweight tag; create it with: git tag -a ${GITHUB_REF_NAME} -m 'notes'"
+            exit 1
+          fi
+          manifest="$(sed -n 's/^version = "\(.*\)"/\1/p' solid_snapshot/blender_manifest.toml)"
+          if [ "v${manifest}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match manifest version ${manifest}"
+            exit 1
+          fi
+          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > release-notes.md
+          cat release-notes.md
+
+      - name: Download the package built by the tests job
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: dist
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.zip \
+            --title "Solid Snapshot ${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md \
+            --verify-tag
