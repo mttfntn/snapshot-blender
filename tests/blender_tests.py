@@ -379,6 +379,32 @@ def perspective_camera_matches_viewport():
 
 
 @test
+def saved_camera_reproduces_viewport_framing():
+    # Proves the 72 mm sensor equivalence: looking through the saved camera
+    # at the viewport's resolution must give the same picture.
+    scene = bpy.context.scene
+    set_view()
+    folder = save_blend("framing")
+    sf = snapshot_folder(folder)
+    _, area, _, wr = view3d()
+    area.spaces.active.overlay.show_overlays = False
+    snap(save_camera=True, match_viewport=True, show_overlays=False)
+    first = image_info(os.path.join(sf, pngs(sf)[-1]))
+    cam = bpy.data.objects["Snap_001"]
+    cam.hide_viewport = True  # keep the camera itself out of the picture
+    scene.camera = cam
+    scene.render.resolution_x, scene.render.resolution_y = wr.width, wr.height
+    scene.render.resolution_percentage = 100
+    set_view(persp="CAMERA")
+    area.spaces.active.overlay.show_overlays = False
+    snap(save_camera=False, match_viewport=False, show_overlays=False)
+    second = image_info(os.path.join(sf, pngs(sf)[-1]))
+    check(first[:2] == second[:2], "sizes differ: %s vs %s" % (first[:2], second[:2]))
+    d = mean_abs_diff(first[5], second[5])
+    check(d < 2.0 / 255, "camera framing differs from the viewport: mean diff %.4f" % d)
+
+
+@test
 def ortho_camera_matches_viewport():
     set_view(persp="ORTHO", dist=8.0)
     save_blend("ortho")

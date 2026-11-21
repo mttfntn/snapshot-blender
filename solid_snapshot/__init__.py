@@ -1,3 +1,24 @@
+"""Solid Snapshot: save a picture of the 3D viewport with neutral colors.
+
+One click (Sidebar > Snapshot > Take Snapshot) does this:
+
+1. Store the scene's color management and the render/output settings the
+   snapshot needs to change (store_color_management, store_render_settings).
+2. Switch the view transform to Standard (set_standard_color_management),
+   optionally hide overlays, and set PNG output at the viewport's size.
+3. Render the viewport (render.opengl) and save the Render Result to
+   <blend folder>/<folder>/<prefix>_<Name>_NNN.png.
+4. Restore every stored setting in a ``finally`` block, so the user's
+   settings come back even when the render or the save fails.
+5. Optionally create a camera matching the view in the CAMERAS collection
+   (camera_from_view), bind it to a timeline marker on the current frame
+   (bind_marker), or move the camera already bound there
+   (update_camera_from_view) when "Override Camera on Frame" is on.
+
+Panel settings live on the scene (Scene.solid_snapshot, SOLIDSNAP_Settings),
+so they are saved with the .blend file.
+"""
+
 bl_info = {
     "name": "Solid Snapshot",
     "author": "Matteo Fontana",
@@ -28,6 +49,11 @@ VIEWPORT_SENSOR = 72.0
 # ---------------------------------------------------------------------------
 
 def store_color_management(owner):
+    """Return the color-management values of ``owner`` as a dict.
+
+    ``owner`` is anything with display_settings and view_settings: the scene,
+    or the output's image_settings (used when its color override is on).
+    """
     vs = owner.view_settings
     return {
         "display_device": owner.display_settings.display_device,
@@ -40,6 +66,12 @@ def store_color_management(owner):
 
 
 def _safe_set(owner, attr, value):
+    """Set an attribute, ignoring values Blender rejects.
+
+    Used for enum values (look, display device, file format...) whose valid
+    items depend on other settings; a rejected value keeps the current one
+    instead of aborting the restore of everything else.
+    """
     try:
         setattr(owner, attr, value)
     except (TypeError, ValueError, AttributeError):
@@ -47,6 +79,8 @@ def _safe_set(owner, attr, value):
 
 
 def set_standard_color_management(scene, neutral):
+    """Switch the scene to Standard with no look; if ``neutral``, also reset
+    exposure to 0, gamma to 1 and turn curves off."""
     vs = scene.view_settings
     vs.view_transform = "Standard"
     _safe_set(vs, "look", "None")
@@ -57,6 +91,7 @@ def set_standard_color_management(scene, neutral):
 
 
 def restore_color_management(owner, saved):
+    """Put back values returned by store_color_management()."""
     vs = owner.view_settings
     _safe_set(owner.display_settings, "display_device", saved["display_device"])
     # The view transform must come before the look (looks depend on it).
@@ -72,6 +107,8 @@ def restore_color_management(owner, saved):
 # ---------------------------------------------------------------------------
 
 def store_render_settings(scene):
+    """Return every render/output setting the operator changes temporarily:
+    resolution, transparency, file format and the output color override."""
     r = scene.render
     im = r.image_settings
     return {
@@ -88,6 +125,7 @@ def store_render_settings(scene):
 
 
 def restore_render_settings(scene, saved):
+    """Put back values returned by store_render_settings()."""
     r = scene.render
     im = r.image_settings
     r.resolution_x = saved["resolution_x"]
@@ -109,6 +147,11 @@ def restore_render_settings(scene, saved):
 # ---------------------------------------------------------------------------
 
 def find_window_region(area):
+    """The main drawing region of a 3D viewport area (None if missing).
+
+    The operator is usually called from the sidebar, so context.region is
+    the sidebar; the viewport render and the image size need this region.
+    """
     regions = [r for r in area.regions if r.type == "WINDOW"]
     if not regions:
         return None
@@ -148,9 +191,9 @@ def marker_camera_on_frame(scene):
     return None
 
 
-def update_camera_from_view(context, cam, region):
+def update_camera_from_view(context, cam):
     """Move an existing camera to the current view, keeping its name."""
-    tmp = camera_from_view(context, cam.name + "_tmp", region)
+    tmp = camera_from_view(context, cam.name + "_tmp")
     old_data = cam.data
     cam.matrix_world = tmp.matrix_world.copy()
     cam.data = tmp.data
@@ -177,6 +220,9 @@ def bind_marker(scene, cam, name):
 
 
 def get_camera_collection(scene):
+    """Return the CAMERAS collection, creating it and linking it to the scene
+    if needed. A CAMERAS collection nested anywhere in the scene is reused
+    as it is."""
     coll = bpy.data.collections.get(CAMERA_COLLECTION)
     if coll is None:
         coll = bpy.data.collections.new(CAMERA_COLLECTION)
@@ -185,8 +231,12 @@ def get_camera_collection(scene):
     return coll
 
 
-def camera_from_view(context, name, region):
-    """Create a camera object matching the current viewport view."""
+def camera_from_view(context, name):
+    """Create a camera object matching the current viewport view.
+
+    The object is not linked to any collection; the caller does that. When
+    the viewport looks through the scene camera, that camera is copied.
+    """
     scene = context.scene
     space = context.space_data
     rv3d = space.region_3d
@@ -231,6 +281,9 @@ def camera_from_view(context, name, region):
 # Settings
 # ---------------------------------------------------------------------------
 
+# Panel settings, stored per scene as Scene.solid_snapshot (saved in the .blend).
+# (Comments instead of docstrings on Blender classes: Blender shows class
+# docstrings to users as tooltips/descriptions.)
 class SOLIDSNAP_Settings(bpy.types.PropertyGroup):
     folder_name: StringProperty(
         name="Folder",
@@ -298,6 +351,7 @@ class SOLIDSNAP_Settings(bpy.types.PropertyGroup):
 # Operator
 # ---------------------------------------------------------------------------
 
+# The main operator: steps 1-5 of the module docstring, in execute().
 class SOLIDSNAP_OT_snapshot(bpy.types.Operator):
     bl_idname = "view3d.solid_snapshot"
     bl_label = "Take Snapshot"
@@ -378,7 +432,8 @@ class SOLIDSNAP_OT_snapshot(bpy.types.Operator):
             if result is None:
                 self.report({"ERROR"}, "Viewport render produced no image")
                 return {"CANCELLED"}
-            # save_render applies the scene's (now Standard) color management.
+            # save_render applies the scene's color management (Standard when
+            # forced), because the output was set to Follow Scene above.
             result.save_render(filepath, scene=scene)
         except Exception as ex:  # keep the user's settings safe no matter what
             self.report({"ERROR"}, "Snapshot failed: %s" % ex)
@@ -391,11 +446,11 @@ class SOLIDSNAP_OT_snapshot(bpy.types.Operator):
         msg = "Snapshot saved: %s" % filepath
         if settings.save_camera:
             if target is not None:
-                update_camera_from_view(context, target, region)
+                update_camera_from_view(context, target)
                 cam = target
                 msg += "  |  camera overridden: %s" % cam.name
             else:
-                cam = camera_from_view(context, snap_name, region)
+                cam = camera_from_view(context, snap_name)
                 get_camera_collection(scene).objects.link(cam)
                 msg += "  |  camera: %s" % cam.name
             cam["snapshot_file"] = bpy.path.relpath(filepath)
@@ -407,6 +462,7 @@ class SOLIDSNAP_OT_snapshot(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# Opens the snapshot folder in the system file browser (creates it if missing).
 class SOLIDSNAP_OT_open_folder(bpy.types.Operator):
     bl_idname = "view3d.solid_snapshot_open_folder"
     bl_label = "Open Snapshots Folder"
@@ -428,6 +484,7 @@ class SOLIDSNAP_OT_open_folder(bpy.types.Operator):
 # UI
 # ---------------------------------------------------------------------------
 
+# Sidebar (N) tab "Snapshot" in the 3D viewport.
 class SOLIDSNAP_PT_panel(bpy.types.Panel):
     bl_label = "Snapshot"
     bl_space_type = "VIEW_3D"
@@ -478,6 +535,7 @@ class SOLIDSNAP_PT_panel(bpy.types.Panel):
 
 
 def menu_func(self, context):
+    """Add Take Snapshot to the bottom of the 3D viewport's View menu."""
     self.layout.separator()
     self.layout.operator(SOLIDSNAP_OT_snapshot.bl_idname, icon="RENDER_STILL")
 
@@ -491,6 +549,7 @@ classes = (
 
 
 def register():
+    """Called by Blender when the add-on is enabled."""
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.Scene.solid_snapshot = PointerProperty(type=SOLIDSNAP_Settings)
@@ -498,6 +557,7 @@ def register():
 
 
 def unregister():
+    """Called by Blender when the add-on is disabled; undoes register()."""
     bpy.types.VIEW3D_MT_view.remove(menu_func)
     del bpy.types.Scene.solid_snapshot
     for cls in reversed(classes):
