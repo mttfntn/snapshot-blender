@@ -151,6 +151,11 @@ LICENSE.
   centre with clipping `~0..2*clip_end`; this does not change framing.
   Blender clamps `clip_start = 0` to its tiny minimum.
 - CI runs Blender on Linux under `xvfb` with software OpenGL (Mesa).
+- CI uploads **no Actions artifacts**. Artifact storage is one quota for the
+  whole GitHub account, and other repos had filled it (the first CI run failed
+  on that). Test results are in the job log; the release job builds its own
+  zip and attaches it to the release, which doesn't count against that quota.
+  Blender itself is kept in the Actions cache (a separate limit).
 
 ## Known limits
 

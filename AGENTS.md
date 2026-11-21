@@ -89,3 +89,4 @@ no-override shots); built zip installed in a scratch profile and tested.
 - Default branch `main`; small commits; commit messages end with a
   Co-Authored-By line when an AI wrote them.
 - Ignored: `*.blend*`, `snapshots/`, `dist/`, `__pycache__/`.
+- CI uploads no artifacts (account-wide storage quota was full); release job builds its own zip.
