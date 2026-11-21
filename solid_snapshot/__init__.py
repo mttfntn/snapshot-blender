@@ -27,10 +27,10 @@ VIEWPORT_SENSOR = 72.0
 # Color management
 # ---------------------------------------------------------------------------
 
-def store_color_management(scene):
-    vs = scene.view_settings
+def store_color_management(owner):
+    vs = owner.view_settings
     return {
-        "display_device": scene.display_settings.display_device,
+        "display_device": owner.display_settings.display_device,
         "view_transform": vs.view_transform,
         "look": vs.look,
         "exposure": vs.exposure,
@@ -56,9 +56,9 @@ def set_standard_color_management(scene, neutral):
         vs.use_curve_mapping = False
 
 
-def restore_color_management(scene, saved):
-    vs = scene.view_settings
-    _safe_set(scene.display_settings, "display_device", saved["display_device"])
+def restore_color_management(owner, saved):
+    vs = owner.view_settings
+    _safe_set(owner.display_settings, "display_device", saved["display_device"])
     # The view transform must come before the look (looks depend on it).
     _safe_set(vs, "view_transform", saved["view_transform"])
     _safe_set(vs, "look", saved["look"])
@@ -82,6 +82,8 @@ def store_render_settings(scene):
         "file_format": im.file_format,
         "color_mode": im.color_mode,
         "color_depth": im.color_depth,
+        "color_management": im.color_management,
+        "output_cm": store_color_management(im),
     }
 
 
@@ -96,6 +98,10 @@ def restore_render_settings(scene, saved):
     _safe_set(im, "file_format", saved["file_format"])
     _safe_set(im, "color_mode", saved["color_mode"])
     _safe_set(im, "color_depth", saved["color_depth"])
+    im.color_management = saved["color_management"]
+    # Switching back to OVERRIDE copies the scene settings into the output
+    # settings, so put the user's own override values back afterwards.
+    restore_color_management(im, saved["output_cm"])
 
 
 # ---------------------------------------------------------------------------
@@ -361,6 +367,9 @@ class SOLIDSNAP_OT_snapshot(bpy.types.Operator):
             im.file_format = "PNG"
             im.color_mode = "RGBA" if settings.transparent else "RGB"
             im.color_depth = "8"
+            # An output color override (Render Properties > Output) would
+            # otherwise replace the scene settings when the image is saved.
+            im.color_management = "FOLLOW_SCENE"
 
             with context.temp_override(area=area, region=region):
                 bpy.ops.render.opengl(write_still=False, view_context=True)

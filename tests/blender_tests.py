@@ -157,7 +157,7 @@ def render_state(scene):
     r = scene.render
     im = r.image_settings
     return (r.resolution_x, r.resolution_y, r.resolution_percentage, r.film_transparent,
-            im.file_format, im.color_mode, im.color_depth)
+            im.file_format, im.color_mode, im.color_depth, im.color_management)
 
 
 def enum_ids(owner, prop):
@@ -289,6 +289,33 @@ def neutral_off_keeps_exposure():
     kept = image_info(os.path.join(sf, pngs(sf)[-1]))
     d = mean_abs_diff(ref[5], kept[5])
     check(d < 1.0 / 255, "Standard+exposure 1 mismatch: %.5f" % d)
+
+
+@test
+def output_color_override_does_not_leak_into_snapshot():
+    # Regression: with Output > Color Management set to Override, the image
+    # used to be saved with the override (e.g. AgX) instead of Standard.
+    scene = bpy.context.scene
+    set_view()
+    folder = save_blend("outoverride")
+    sf = snapshot_folder(folder)
+    scene.render.resolution_x, scene.render.resolution_y = 320, 180
+    common = dict(save_camera=False, match_viewport=False, force_standard=True)
+    set_transform(scene, "Standard", look_index=0)
+    snap(**common)
+    ref = image_info(os.path.join(sf, pngs(sf)[-1]))
+    im = scene.render.image_settings
+    im.color_management = "OVERRIDE"
+    im.view_settings.view_transform = "AgX"
+    im.view_settings.exposure = 1.5
+    set_transform(scene, "Filmic")
+    snap(**common)
+    got = image_info(os.path.join(sf, pngs(sf)[-1]))
+    d = max(abs(a - b) for a, b in zip(ref[5], got[5]))
+    check(d < 2.0 / 255, "output override leaked into the snapshot: max diff %.4f" % d)
+    check((im.color_management, im.view_settings.view_transform, round(im.view_settings.exposure, 3))
+          == ("OVERRIDE", "AgX", 1.5), "output override settings not restored: %s %s %s"
+          % (im.color_management, im.view_settings.view_transform, im.view_settings.exposure))
 
 
 @test
