@@ -16,19 +16,9 @@ One click (Sidebar > Snapshot > Take Snapshot) does this:
    (update_camera_from_view) when "Override Camera on Frame" is on.
 
 Panel settings live on the scene (Scene.solid_snapshot, SOLIDSNAP_Settings),
-so they are saved with the .blend file.
+so they are saved with the .blend file. Name, version and supported Blender
+versions are in blender_manifest.toml next to this file.
 """
-
-bl_info = {
-    "name": "Solid Snapshot",
-    "author": "Matteo Fontana",
-    "version": (1, 0, 0),
-    "blender": (3, 2, 0),
-    "location": "3D Viewport > Sidebar (N) > Snapshot",
-    "description": "Viewport snapshot with temporary Standard color management, "
-                   "optional camera bookmark, saved next to the .blend",
-    "category": "3D View",
-}
 
 import os
 import re
@@ -562,7 +552,3 @@ def unregister():
     del bpy.types.Scene.solid_snapshot
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-
-if __name__ == "__main__":
-    register()

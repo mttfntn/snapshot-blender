@@ -1,0 +1,21 @@
+schema_version = "1.0.0"
+
+id = "solid_snapshot"
+version = "1.0.0"
+name = "Solid Snapshot"
+tagline = "Viewport snapshots in Standard colors, with camera bookmarks"
+maintainer = "Matteo Fontana"
+type = "add-on"
+website = "https://github.com/mttfntn/snapshot-blender"
+tags = ["3D View", "Camera", "Render"]
+
+# Supported range: Blender 5.3.x only (max is exclusive). CI tests exactly
+# the version in .github/workflows/tests.yml; keep the two in sync.
+blender_version_min = "5.3.0"
+blender_version_max = "5.4.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+copyright = ["2026 Matteo Fontana"]
+
+[permissions]
+files = "Save snapshot images in a folder next to the .blend file"
