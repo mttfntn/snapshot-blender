@@ -112,6 +112,9 @@ python tests/compare.py --old-rev <git revision>
    - what changed"
    git push origin v1.1.0
    ```
+   The message is rendered as Markdown on GitHub: text in angle brackets
+   such as `<blend>` disappears (read as HTML), so write `[blend]` or put it
+   in backticks.
 5. The **release** workflow re-runs the tests, builds the zip and publishes a
    GitHub release with the zip attached and the tag message as notes. It
    refuses lightweight tags and tags that don't match the manifest version.

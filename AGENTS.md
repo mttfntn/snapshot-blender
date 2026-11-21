@@ -79,7 +79,8 @@ no-override shots); built zip installed in a scratch profile and tested.
 1. Bump `version` in `solid_snapshot/blender_manifest.toml`.
 2. Bump the static release badge in README.md.
 3. Commit, push `main`, wait for green `tests` workflow.
-4. `git tag -a vX.Y.Z -m "<notes>"` (annotated; message = release notes).
+4. `git tag -a vX.Y.Z -m "notes"` (annotated; message = release notes, rendered as
+   Markdown: no bare `<word>`, GitHub drops it as HTML).
 5. `git push origin vX.Y.Z` -> `release` workflow tests, builds, publishes.
 6. Check the release page has `solid_snapshot-X.Y.Z.zip`.
 
