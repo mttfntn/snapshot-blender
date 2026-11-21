@@ -1,0 +1,8 @@
+# Blender files and outputs (local work, not part of the add-on)
+*.blend
+*.blend[0-9]
+snapshots/
+# Python / build
+__pycache__/
+*.pyc
+dist/
