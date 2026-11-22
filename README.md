@@ -1,10 +1,10 @@
 # Solid Snapshot
 
-[![Blender](https://img.shields.io/badge/Blender-5.3-orange?logo=blender&logoColor=white)](solid_snapshot/blender_manifest.toml)
-[![Release](https://img.shields.io/badge/release-v1.0.0-blue)](https://github.com/mttfntn/snapshot-blender/releases)
+[![Blender](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmttfntn%2Fsnapshot-blender%2Fmain%2Fsolid_snapshot%2Fblender_manifest.toml&query=%24.blender_version_min&label=Blender&color=E87D0D&logo=blender&logoColor=white)](https://www.blender.org/download/)
+[![Release](https://img.shields.io/github/v/release/mttfntn/snapshot-blender)](https://github.com/mttfntn/snapshot-blender/releases/latest)
 [![tests](https://github.com/mttfntn/snapshot-blender/actions/workflows/tests.yml/badge.svg)](https://github.com/mttfntn/snapshot-blender/actions/workflows/tests.yml)
-[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-green)](LICENSE)
-[![Python](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white)](solid_snapshot/__init__.py)
+[![License](https://img.shields.io/github/license/mttfntn/snapshot-blender)](LICENSE)
+[![Language](https://img.shields.io/github/languages/top/mttfntn/snapshot-blender)](https://github.com/mttfntn/snapshot-blender)
 
 A Blender add-on that saves a picture of the 3D viewport in **Standard** colors,
 even when your scene uses AgX, Filmic or another view transform, and then puts

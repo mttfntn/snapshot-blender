@@ -16,7 +16,7 @@ It is an original project, not a fork: there is no upstream to merge from.
 | Blender | **5.3.x** (the only supported and tested version) |
 | Python | 3.9+ on your PATH, only to run the test/build scripts (the add-on itself uses Blender's Python) |
 | git | any recent version |
-| GitHub | push access to `mttfntn/snapshot-blender` (private) |
+| GitHub | push access to `mttfntn/snapshot-blender` (public) |
 
 No third-party Python packages are used anywhere.
 
@@ -102,8 +102,7 @@ python tests/compare.py --old-rev <git revision>
 ## How to make a release
 
 1. Update `version` in `solid_snapshot/blender_manifest.toml` (e.g. `1.1.0`).
-2. Update the static **release** badge in `README.md` to the same version
-   (the repo is private, so shields.io cannot read the release itself).
+2. Nothing to change in `README.md`: its release, license and language badges read GitHub, and the Blender badge reads the manifest.
 3. Commit and push to `main`; wait for the **tests** workflow to pass.
 4. Create an **annotated** tag whose message is the release notes, and push it:
    ```
@@ -170,8 +169,8 @@ LICENSE.
 - Undo removes the camera/marker but not the image file on disk.
 - Settings that Blender rejects while restoring (e.g. a look that no longer
   exists) are skipped silently by `_safe_set()`.
-- The repo is private: the release badge is static and must be updated by
-  hand; the tests badge only renders for people with access.
+- The repo is public: all README badges are live (release and license from
+  GitHub, the Blender version from the manifest).
 
 ## How the current state was verified (November 2026)
 

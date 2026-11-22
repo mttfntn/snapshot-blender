@@ -86,7 +86,7 @@ no-override shots); built zip installed in a scratch profile and tested.
 
 ## Git
 
-- Remote `origin` = https://github.com/mttfntn/snapshot-blender.git (private).
+- Remote `origin` = https://github.com/mttfntn/snapshot-blender.git (public).
 - Default branch `main`; small commits; commit messages end with a
   Co-Authored-By line when an AI wrote them.
 - Ignored: `*.blend*`, `snapshots/`, `dist/`, `__pycache__/`.
