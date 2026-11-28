@@ -21,7 +21,9 @@ Linux/CI needs a display: `xvfb-run -a -s "-screen 0 1920x1080x24" python3 tests
   store/restore -> render settings store/restore -> helpers (naming, markers,
   cameras) -> `SOLIDSNAP_Settings` (PropertyGroup on `Scene.solid_snapshot`)
   -> `SOLIDSNAP_OT_snapshot` (`view3d.solid_snapshot`) ->
-  `SOLIDSNAP_OT_open_folder` -> `SOLIDSNAP_PT_panel` (sidebar tab "Snapshot")
+  `SOLIDSNAP_OT_open_folder` -> `SOLIDSNAP_OT_collect_cameras`
+  (`view3d.solid_snapshot_collect_cameras`, uses `cameras_outside_collection`
+  / `move_to_camera_collection`) -> `SOLIDSNAP_PT_panel` (sidebar tab "Snapshot")
   -> View menu entry -> register/unregister.
 - `solid_snapshot/blender_manifest.toml`: version + supported range
   (5.3.0 <= Blender < 5.4.0). bl_info is intentionally absent.
@@ -70,14 +72,15 @@ finally: restore all -> camera (`camera_from_view` / `update_camera_from_view`)
 
 ## How changes were verified (Nov 2026)
 
-24/24 tests on Blender 5.3.0; compare vs original `c75ff43`: 0 noise, only
+25/25 tests on Blender 5.3.0; compare vs original `c75ff43`: 0 noise, only
 differences = images with output color override (bug fix, now identical to
 no-override shots); built zip installed in a scratch profile and tested.
+1.1.0 (Collect Cameras): compare vs `5846cc4` (1.0.0) = 0 of 180 keys differ.
 
 ## Release checklist
 
 1. Bump `version` in `solid_snapshot/blender_manifest.toml`.
-2. Bump the static release badge in README.md.
+2. README badges are live (nothing to bump); document new options in README.
 3. Commit, push `main`, wait for green `tests` workflow.
 4. `git tag -a vX.Y.Z -m "notes"` (annotated; message = release notes, rendered as
    Markdown: no bare `<word>`, GitHub drops it as HTML).

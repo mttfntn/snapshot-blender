@@ -68,6 +68,15 @@ Everything happens in `SOLIDSNAP_OT_snapshot.execute()`:
 Panel settings are a `PropertyGroup` on the scene (`scene.solid_snapshot`),
 so they are saved per `.blend`.
 
+**Collect Cameras** (`SOLIDSNAP_OT_collect_cameras`, panel section
+"Collection") is separate from the snapshot: `cameras_outside_collection()`
+lists the scene's cameras not inside CAMERAS (sub-collections of CAMERAS
+count as inside; scope "Snapshot Cameras" = objects with the
+`snapshot_file` property, "All Cameras" = every camera), and
+`move_to_camera_collection()` links each to CAMERAS and unlinks it from this
+scene's other collections, leaving collections of other scenes alone. The
+panel draws the count on every redraw.
+
 ## How to make a change
 
 1. Edit `solid_snapshot/__init__.py`.
@@ -174,7 +183,9 @@ LICENSE.
 
 ## How the current state was verified (November 2026)
 
-- Test suite: 24 tests, all passing on Blender 5.3.0 (Windows, isolated).
+- Test suite: 25 tests, all passing on Blender 5.3.0 (Windows, isolated).
+- 1.1.0 (Collect Cameras): `compare.py --old-rev 5846cc4` (the 1.0.0 code)
+  reports 0 of 180 keys differ, so snapshots behave exactly as before.
 - Behaviour comparison against the original code (`c75ff43`): 180 option
   combinations, zero run-to-run noise; the only differences are the images
   saved with an output color override, which now match the same shots

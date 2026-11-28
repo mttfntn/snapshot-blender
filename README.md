@@ -46,6 +46,8 @@ same command is at the bottom of the viewport's **View** menu.
 | Save Camera | Add a camera matching the view to the CAMERAS collection (default on). |
 | Add Timeline Marker | Put a marker on the current frame bound to the new camera. A marker already on that frame is reused. |
 | Override Camera on Frame | If the marker on this frame already has a camera, move that camera and overwrite its image instead of making a new one. |
+| Collection > Check | Which cameras must be in CAMERAS: *Snapshot Cameras* (made by this add-on, default) or *All Cameras*. The line below says how many are outside. |
+| Collect Cameras | Move those cameras into CAMERAS and out of this scene's other collections. Cameras in a sub-collection of CAMERAS already count as inside. |
 | Match Viewport Size | Image size = viewport size; off = scene resolution. Looking through a camera always uses the scene resolution. |
 | Include Overlays | Keep grid, outlines, gizmos in the image. |
 | Transparent Background | PNG with alpha. |

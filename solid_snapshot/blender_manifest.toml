@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "solid_snapshot"
-version = "1.0.0"
+version = "1.1.0"
 name = "Solid Snapshot"
 tagline = "Viewport snapshots in Standard colors, with camera bookmarks"
 maintainer = "Matteo Fontana"
