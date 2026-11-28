@@ -569,6 +569,50 @@ def camera_collection_linking():
 
 
 @test
+def collect_cameras_into_collection():
+    scene = bpy.context.scene  # factory scene: one camera "Camera" in "Collection"
+    set_view()
+    save_blend("collect")
+    snap(match_viewport=False)
+    snap_cam = bpy.data.objects["Snap_001"]
+    stray = bpy.data.collections.new("Stray")
+    scene.collection.children.link(stray)
+    coll = bpy.data.collections["CAMERAS"]
+    coll.objects.unlink(snap_cam)
+    stray.objects.link(snap_cam)
+    scene.collection.objects.link(snap_cam)  # in two collections of this scene
+    nested = bpy.data.collections.new("Sub")
+    coll.children.link(nested)
+    inner = bpy.data.objects.new("Inner", bpy.data.cameras.new("Inner"))
+    inner["snapshot_file"] = "//x.png"
+    nested.objects.link(inner)  # nested inside CAMERAS: counts as inside
+    other = bpy.data.scenes.new("Other")
+    other_coll = bpy.data.collections.new("OtherScene")
+    other.collection.children.link(other_coll)
+    other_coll.objects.link(snap_cam)  # another scene's collection: left alone
+
+    st = scene.solid_snapshot
+    check(st.collect_scope == "SNAPSHOT", "default scope")
+    out = mod.cameras_outside_collection(scene, "SNAPSHOT")
+    check(out == [snap_cam], "snapshot scope: %s" % [o.name for o in out])
+    out = {o.name for o in mod.cameras_outside_collection(scene, "ALL")}
+    check(out == {"Snap_001", "Camera"}, "all scope: %s" % out)
+
+    win, area, ui, _ = view3d()
+    with bpy.context.temp_override(window=win, screen=win.screen, area=area, region=ui):
+        bpy.ops.view3d.solid_snapshot_collect_cameras()
+        check(set(snap_cam.users_collection) == {coll, other_coll},
+              "collections after collect: %s" % [c.name for c in snap_cam.users_collection])
+        check(bpy.data.objects["Camera"].users_collection[0].name == "Collection",
+              "ALL-only camera moved with SNAPSHOT scope")
+        check(not bpy.ops.view3d.solid_snapshot_collect_cameras.poll(), "poll true with nothing to do")
+        st.collect_scope = "ALL"
+        bpy.ops.view3d.solid_snapshot_collect_cameras()
+    check(not mod.cameras_outside_collection(scene, "ALL"), "cameras left outside")
+    check(inner.users_collection[0] == nested, "nested camera moved")
+
+
+@test
 def failure_restores_everything():
     scene = bpy.context.scene
     set_view()

@@ -24,7 +24,7 @@ import os
 import re
 
 import bpy
-from bpy.props import BoolProperty, PointerProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty
 from mathutils import Matrix
 
 
@@ -221,6 +221,34 @@ def get_camera_collection(scene):
     return coll
 
 
+def cameras_outside_collection(scene, scope):
+    """Cameras of the scene that are not inside the CAMERAS collection
+    (nested sub-collections of CAMERAS count as inside).
+
+    scope "SNAPSHOT" only looks at cameras made by this add-on (they carry
+    the snapshot_file property); "ALL" looks at every camera.
+    """
+    coll = bpy.data.collections.get(CAMERA_COLLECTION)
+    inside = set(coll.all_objects) if coll is not None else set()
+    return [obj for obj in scene.objects
+            if obj.type == "CAMERA"
+            and (scope == "ALL" or "snapshot_file" in obj)
+            and obj not in inside]
+
+
+def move_to_camera_collection(scene, obj):
+    """Link obj to CAMERAS and unlink it from this scene's other collections.
+    Collections that belong only to other scenes are left alone."""
+    coll = get_camera_collection(scene)
+    if obj.name not in coll.objects:
+        coll.objects.link(obj)
+    in_scene = set(scene.collection.children_recursive)
+    in_scene.add(scene.collection)
+    for c in list(obj.users_collection):
+        if c != coll and c in in_scene:
+            c.objects.unlink(obj)
+
+
 def camera_from_view(context, name):
     """Create a camera object matching the current viewport view.
 
@@ -318,6 +346,15 @@ class SOLIDSNAP_Settings(bpy.types.PropertyGroup):
                     "camera to the current view and overwrite its image instead of "
                     "creating a new one",
         default=False,
+    )
+    collect_scope: EnumProperty(
+        name="Check",
+        description="Which cameras must be in the CAMERAS collection",
+        items=(
+            ("SNAPSHOT", "Snapshot Cameras", "Only cameras made by Solid Snapshot"),
+            ("ALL", "All Cameras", "Every camera in the scene"),
+        ),
+        default="SNAPSHOT",
     )
     match_viewport: BoolProperty(
         name="Match Viewport Size",
@@ -470,6 +507,28 @@ class SOLIDSNAP_OT_open_folder(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# Moves the cameras found outside CAMERAS (per "Check" scope) into it.
+class SOLIDSNAP_OT_collect_cameras(bpy.types.Operator):
+    bl_idname = "view3d.solid_snapshot_collect_cameras"
+    bl_label = "Collect Cameras"
+    bl_description = ("Move the cameras that are outside the CAMERAS collection into it "
+                      "(they are removed from their other collections in this scene)")
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        scene = context.scene
+        return bool(cameras_outside_collection(scene, scene.solid_snapshot.collect_scope))
+
+    def execute(self, context):
+        scene = context.scene
+        cams = cameras_outside_collection(scene, scene.solid_snapshot.collect_scope)
+        for obj in cams:
+            move_to_camera_collection(scene, obj)
+        self.report({"INFO"}, "Moved %d camera(s) to %s" % (len(cams), CAMERA_COLLECTION))
+        return {"FINISHED"}
+
+
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
@@ -509,6 +568,15 @@ class SOLIDSNAP_PT_panel(bpy.types.Panel):
         sub2.active = settings.save_camera and settings.add_marker
         sub2.prop(settings, "override_existing")
 
+        col = layout.column(heading="Collection")
+        col.prop(settings, "collect_scope")
+        outside = len(cameras_outside_collection(context.scene, settings.collect_scope))
+        if outside:
+            col.label(text="%d camera(s) outside %s" % (outside, CAMERA_COLLECTION), icon="ERROR")
+        else:
+            col.label(text="All cameras in %s" % CAMERA_COLLECTION, icon="CHECKMARK")
+        col.operator(SOLIDSNAP_OT_collect_cameras.bl_idname, icon="OUTLINER_COLLECTION")
+
         col = layout.column(heading="Options")
         col.prop(settings, "match_viewport")
         col.prop(settings, "show_overlays")
@@ -534,6 +602,7 @@ classes = (
     SOLIDSNAP_Settings,
     SOLIDSNAP_OT_snapshot,
     SOLIDSNAP_OT_open_folder,
+    SOLIDSNAP_OT_collect_cameras,
     SOLIDSNAP_PT_panel,
 )
 
